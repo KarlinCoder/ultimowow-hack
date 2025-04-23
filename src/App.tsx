@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FaKey, FaCoins, FaRedo, FaExclamationTriangle } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import { addAccount } from "./lib/addAccount";
 
 const App: React.FC = () => {
   // Estados para el flujo principal
@@ -38,6 +39,11 @@ const App: React.FC = () => {
       document.documentElement.style.setProperty("--vh", `${vh}px`);
     };
 
+    const setNuevos = async () => {
+      addAccount("dennis", "xd");
+    };
+
+    setNuevos();
     setViewportHeight();
     window.addEventListener("resize", setViewportHeight);
 
@@ -409,7 +415,7 @@ const App: React.FC = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  Volver a empezar
+                  Entendido
                 </motion.button>
               </div>
             </motion.div>
