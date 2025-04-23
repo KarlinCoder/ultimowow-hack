@@ -158,7 +158,7 @@ const App: React.FC = () => {
   // Funciones para el panel de administrador
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminPassword === "asd") {
+    if (adminPassword === "1") {
       setIsAuthenticated(true);
       setPasswordError(false);
     } else {
@@ -306,7 +306,7 @@ const App: React.FC = () => {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Usuario o Correo"
+                placeholder="Nombre de Usuario"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 rounded-md bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500 border border-gray-600"
@@ -484,7 +484,8 @@ const App: React.FC = () => {
                 </h3>
                 <p className="text-gray-300 mb-5 sm:mb-6 text-sm sm:text-base">
                   Monedas solicitadas correctamente. Tu pedido aparecerá en el
-                  buzón en aproximadamente {randomMinutes} minutos.
+                  buzón en aproximadamente {randomMinutes} minutos. Por favor,
+                  relogea.
                 </p>
                 <motion.button
                   onClick={resetProcess}
