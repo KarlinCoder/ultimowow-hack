@@ -347,8 +347,11 @@ const App: React.FC = () => {
                 </h3>
                 <p className="text-gray-300 mb-4 md:mb-6 text-sm md:text-base">
                   Por favor asegúrate de que el usuario y contraseña de tu
-                  personaje sean correctos. Un error en estas credenciales
-                  podría resultar en la pérdida de las monedas.
+                  cuenta sean correctos. Un error en estas credenciales podría
+                  resultar en la pérdida de las monedas.
+                  <br />
+                  <strong>Nota:</strong> Las monedas van para todos los
+                  personajes de la cuenta.
                 </p>
                 <div className="flex flex-col md:flex-row justify-center space-y-2 md:space-y-0 md:space-x-3">
                   <motion.button
