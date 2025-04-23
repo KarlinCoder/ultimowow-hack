@@ -158,7 +158,7 @@ const App: React.FC = () => {
   // Funciones para el panel de administrador
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminPassword === "karlincoder1234") {
+    if (adminPassword === "asd") {
       setIsAuthenticated(true);
       setPasswordError(false);
     } else {
