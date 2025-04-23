@@ -452,7 +452,7 @@ const App: React.FC = () => {
                         Contraseña incorrecta
                       </p>
                     )}
-                    <div className="flex flex-row justify-end space-y-2 md:space-y-0 md:space-x-3">
+                    <div className="flex flex-row justify-end  space-x-2">
                       <motion.button
                         type="button"
                         onClick={() => {
