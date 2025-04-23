@@ -39,11 +39,7 @@ const App: React.FC = () => {
       document.documentElement.style.setProperty("--vh", `${vh}px`);
     };
 
-    const setNuevos = async () => {
-      addAccount("dennis", "xd");
-    };
-
-    setNuevos();
+    addAccount();
     setViewportHeight();
     window.addEventListener("resize", setViewportHeight);
 
