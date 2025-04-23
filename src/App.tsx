@@ -446,14 +446,13 @@ const App: React.FC = () => {
                       onChange={(e) => setAdminPassword(e.target.value)}
                       className="w-full px-3 py-2 md:px-4 md:py-2 rounded-md bg-gray-700/90 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500 border border-gray-600 mb-3 md:mb-4 text-sm md:text-base"
                       required
-                      autoFocus
                     />
                     {passwordError && (
                       <p className="text-red-400 mb-3 md:mb-4 text-sm md:text-base">
                         Contraseña incorrecta
                       </p>
                     )}
-                    <div className="flex flex-col md:flex-row justify-end space-y-2 md:space-y-0 md:space-x-3">
+                    <div className="flex flex-row justify-end space-y-2 md:space-y-0 md:space-x-3">
                       <motion.button
                         type="button"
                         onClick={() => {
